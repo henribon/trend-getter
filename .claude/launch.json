@@ -14,6 +14,12 @@
         "DATABASE_PATH": "data/preview.db"
       },
       "port": 3100
+    },
+    {
+      "name": "static-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "3200", "--directory", ".preview"],
+      "port": 3200
     }
   ]
 }

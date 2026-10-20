@@ -6,6 +6,13 @@ const DEFAULT_LOCATION_ID = 'brazil';
 
 const SUGGESTIONS = ['Tecnologia', 'Futebol', 'Política', 'Economia', 'Games', 'Música', 'Cinema e séries', 'Ciência'];
 
+const COMMIT_INSTRUCTIONS = Object.freeze({
+  prefilled:
+    'Clique em "Abrir no GitHub": o arquivo trends.config.json já vai preenchido. Lá, clique em "Commit changes". A primeira busca roda em cerca de 1 minuto e aparece neste site.',
+  manual:
+    'Clique em "Abrir no GitHub", troque todo o conteúdo do arquivo pelo texto abaixo e clique em "Commit changes". O site é atualizado com uma nova busca em cerca de 1 minuto.',
+});
+
 const view = {
   form: byId('setup-form'),
   title: byId('setup-title'),
@@ -18,27 +25,36 @@ const view = {
   error: byId('form-error'),
   cancel: byId('cancel'),
   save: byId('save'),
+  commitPanel: byId('commit-panel'),
+  commitInstructions: byId('commit-instructions'),
+  commitLink: byId('commit-link'),
+  configContent: byId('config-content'),
+  copyConfig: byId('copy-config'),
+  backToForm: byId('back-to-form'),
 };
 
+let appState = null;
+
 async function init() {
-  const state = await api.getState();
-  const interests = state.settings?.interests ?? [];
-  renderIntro(state);
-  renderLocations(state.locations, state.settings?.locationId ?? DEFAULT_LOCATION_ID);
+  appState = await api.getState();
+  const interests = appState.settings?.interests ?? [];
+  renderIntro(appState);
+  renderLocations(appState.locations, appState.settings?.locationId ?? DEFAULT_LOCATION_ID);
   (interests.length > 0 ? interests : [{}]).forEach(addRow);
   renderSuggestions();
-  renderHint(state.matcher);
+  renderHint(appState.matcher);
   bindEvents();
 }
 
-function renderIntro({ configured, schedule }) {
+function renderIntro({ configured, schedule, mode }) {
   const times = formatList(schedule.times);
+  const commitNote = mode === 'static' ? ' Ao salvar, você confirma a configuração com um commit no GitHub.' : '';
   if (!configured) {
-    view.description.textContent = `Você faz isso uma única vez. Depois, as trends do X são buscadas automaticamente todos os dias às ${times} e você vê só o que importa.`;
+    view.description.textContent = `Você faz isso uma única vez. Depois, as trends do X são buscadas automaticamente todos os dias às ${times} e você vê só o que importa.${commitNote}`;
     return;
   }
   view.title.textContent = 'Editar interesses';
-  view.description.textContent = `As buscas continuam automáticas, todos os dias às ${times}.`;
+  view.description.textContent = `As buscas continuam automáticas, todos os dias às ${times}.${commitNote}`;
   view.save.textContent = 'Salvar alterações';
   view.cancel.hidden = false;
 }
@@ -124,18 +140,53 @@ async function submit(event) {
   hideError();
   view.save.disabled = true;
   try {
-    await api.saveSettings({ locationId: view.location.value, interests });
-    window.location.assign('/');
+    handleSaveResult(await api.saveSettings({ locationId: view.location.value, interests }, appState));
   } catch (error) {
     showError(error.message);
+  } finally {
     view.save.disabled = false;
   }
+}
+
+function handleSaveResult(result) {
+  if (result.type === 'commit') {
+    showCommitPanel(result);
+    return;
+  }
+  window.location.assign('./');
+}
+
+function showCommitPanel({ url, content, prefilled }) {
+  view.commitInstructions.textContent = prefilled ? COMMIT_INSTRUCTIONS.prefilled : COMMIT_INSTRUCTIONS.manual;
+  view.commitLink.href = url;
+  view.configContent.value = content;
+  view.form.hidden = true;
+  view.commitPanel.hidden = false;
+  view.commitLink.focus();
+}
+
+function showForm() {
+  view.commitPanel.hidden = true;
+  view.form.hidden = false;
+}
+
+async function copyConfig() {
+  const copied = await navigator.clipboard.writeText(view.configContent.value).then(
+    () => true,
+    () => false,
+  );
+  if (!copied) {
+    view.configContent.select();
+  }
+  view.copyConfig.textContent = copied ? 'Copiado!' : 'Use Ctrl+C para copiar';
 }
 
 function bindEvents() {
   view.form.addEventListener('submit', submit);
   view.list.addEventListener('change', refreshSuggestions);
   view.add.addEventListener('click', () => nameInput(addRow()).focus());
+  view.copyConfig.addEventListener('click', copyConfig);
+  view.backToForm.addEventListener('click', showForm);
 }
 
 function rows() {

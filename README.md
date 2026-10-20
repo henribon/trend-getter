@@ -3,14 +3,44 @@
 Site que busca os **trending topics do X (Twitter) duas vezes por dia** e destaca só as trends ligadas aos assuntos que você acompanha.
 
 1. No primeiro acesso você configura **uma única vez** o local e os seus assuntos de interesse (com palavras-chave opcionais).
-2. A partir daí um agendador interno (cron) busca as trends nos horários definidos (padrão **08:00 e 20:00**).
+2. A partir daí um cron busca as trends nos horários definidos (padrão **08:00 e 20:00**, horário de Brasília).
 3. O painel mostra, por assunto, as trends relacionadas, o motivo da relação, todas as trends da busca e o histórico.
+
+O mesmo código roda de dois jeitos:
+
+| Modo | Onde | Cron | Configuração |
+|---|---|---|---|
+| **Site no GitHub Pages** | `https://<usuário>.github.io/trend-getter/` | GitHub Actions | arquivo `trends.config.json` no repositório, criado pela própria tela do site |
+| **Servidor local** | `http://localhost:3000` | agendador interno do Node | salva no SQLite pela tela do site |
+
+## Site no GitHub Pages
+
+O workflow [`.github/workflows/trends.yml`](.github/workflows/trends.yml) roda às 11:00 e 23:00 UTC (08:00 e 20:00 em Brasília), busca as trends e publica um site estático no GitHub Pages. O histórico fica nos próprios arquivos publicados (`data/runs.json`), então não há banco nem commits automáticos.
+
+1. Abra o site. Sem configuração, ele mostra a tela de interesses.
+2. Preencha e clique em **Salvar e começar**: o site abre o GitHub com o `trends.config.json` já preenchido. Clique em **Commit changes**.
+3. Esse commit dispara o workflow; em cerca de 1 minuto a primeira busca aparece no site.
+
+Depois disso:
+
+- **Buscar agora** abre o workflow no GitHub; clique em **Run workflow**.
+- **Editar interesses** gera o novo conteúdo e abre o editor do `trends.config.json` no GitHub.
+- Para usar IA ou a API do X, crie os secrets `ANTHROPIC_API_KEY` ou `X_BEARER_TOKEN` em *Settings → Secrets and variables → Actions*.
+- O GitHub pode atrasar execuções agendadas em alguns minutos e desativa crons de repositórios públicos sem atividade por 60 dias (ele avisa por e-mail; basta reativar na aba Actions).
+
+Para gerar o site estático localmente:
+
+```bash
+npm run build:site
+```
+
+(precisa de `GITHUB_REPOSITORY=dono/repositorio`; o resultado fica em `dist/`).
 
 ## Requisitos
 
 - Node.js **22.13+** (testado no 24). Sem banco externo: usa o SQLite embutido no Node.
 
-## Como rodar
+## Servidor local
 
 ```bash
 npm install
@@ -24,7 +54,7 @@ copy .env.example .env
 npm start
 ```
 
-Abra http://localhost:3000. Enquanto os interesses não forem configurados, o site redireciona para `/setup` e nenhuma busca é feita. Ao salvar, a primeira busca roda na hora.
+Abra http://localhost:3000. Enquanto os interesses não forem configurados, o site redireciona para `/setup.html` e nenhuma busca é feita. Ao salvar, a primeira busca roda na hora.
 
 ## Agendamento
 
@@ -97,12 +127,14 @@ Com IA, o modelo padrão é `claude-opus-5-5` (troque em `ANTHROPIC_MODEL`). O f
 src/
   domain/          regras puras: texto, horários, validação, locais
   application/     casos de uso: coletor, agendador, configurações
-  infrastructure/  SQLite, fontes de trends e estratégias de correspondência
+  infrastructure/  SQLite, arquivo de configuração, fontes de trends, correspondência e geração do site
   http/            servidor, rotas e arquivos estáticos
   main.js          servidor + agendador
   collect.js       busca avulsa para cron externo
-public/            front-end sem framework
+  build-site.js    busca + geração do site estático (GitHub Actions)
+public/            front-end sem framework (server-api.js no servidor, static-api.js no Pages)
 test/              testes com node:test
+.github/workflows/ cron do GitHub Actions + deploy no Pages
 ```
 
 ## Testes

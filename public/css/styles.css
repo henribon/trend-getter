@@ -228,6 +228,38 @@ h3 {
   color: var(--danger);
 }
 
+.notice-info {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.commit-panel {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.commit-panel p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.commit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.input.code {
+  min-height: 200px;
+  font: 0.85rem/1.5 ui-monospace, 'Cascadia Code', Consolas, monospace;
+  resize: vertical;
+}
+
 .section-head {
   display: flex;
   flex-wrap: wrap;

@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Configurar interesses · Trend Getter</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/css/styles.css">
-  <script type="module" src="/js/setup.js"></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/setup.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/"><img src="/favicon.svg" alt=""><span>Trend Getter</span></a>
+    <a class="brand" href="./"><img src="favicon.svg" alt=""><span>Trend Getter</span></a>
   </header>
 
   <main class="page setup">
@@ -42,10 +42,24 @@
       <p class="form-error" id="form-error" role="alert" hidden></p>
 
       <div class="form-footer">
-        <a class="button button-ghost" id="cancel" href="/" hidden>Cancelar</a>
+        <a class="button button-ghost" id="cancel" href="./" hidden>Cancelar</a>
         <button class="button" id="save" type="submit">Salvar e começar</button>
       </div>
     </form>
+
+    <section class="commit-panel" id="commit-panel" aria-labelledby="commit-title" hidden>
+      <h2 id="commit-title">Falta só confirmar no GitHub</h2>
+      <p id="commit-instructions"></p>
+      <div class="commit-actions">
+        <a class="button" id="commit-link" target="_blank" rel="noopener noreferrer">Abrir no GitHub</a>
+        <button class="button button-ghost" id="copy-config" type="button">Copiar configuração</button>
+        <button class="button button-ghost" id="back-to-form" type="button">Voltar e ajustar</button>
+      </div>
+      <label class="field">
+        <span class="field-label">Conteúdo de trends.config.json</span>
+        <textarea class="input code" id="config-content" readonly></textarea>
+      </label>
+    </section>
   </main>
 
   <template id="interest-row-template">

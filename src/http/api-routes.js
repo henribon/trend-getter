@@ -1,21 +1,19 @@
-import { LOCATIONS } from '../domain/locations.js';
+import { APP_MODE, describeAppState } from '../application/app-state.js';
 import { readJson, sendJson } from './responses.js';
 
 const DEFAULT_RUNS_LIMIT = 20;
 const MAX_RUNS_LIMIT = 60;
 
-const PUBLIC_LOCATIONS = LOCATIONS.map(({ id, name }) => ({ id, name }));
-
 export function registerApiRoutes(router, { settingsService, collector, job, runRepository, scheduler, provider, matcher }) {
-  const describeState = () => ({
-    configured: settingsService.isConfigured(),
-    settings: settingsService.get(),
-    locations: PUBLIC_LOCATIONS,
-    schedule: { times: scheduler.times, nextRunAt: scheduler.nextRunAt?.toISOString() ?? null },
-    collecting: collector.isCollecting,
-    source: provider.label,
-    matcher: { name: matcher.name, label: matcher.label },
-  });
+  const describeState = () =>
+    describeAppState({
+      mode: APP_MODE.server,
+      settings: settingsService.get(),
+      schedule: { times: scheduler.times, nextRunAt: scheduler.nextRunAt },
+      collecting: collector.isCollecting,
+      provider,
+      matcher,
+    });
 
   router
     .on('GET', '/api/state', ({ response }) => sendJson(response, 200, describeState()))

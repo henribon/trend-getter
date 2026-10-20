@@ -1,0 +1,61 @@
+name: Buscar trends
+
+on:
+  schedule:
+    - cron: '0 11,23 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      - name: Buscar trends e gerar o site
+        run: npm run build:site
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+          FORCE_COLLECT: ${{ github.event_name != 'push' }}
+          TZ: America/Sao_Paulo
+          SCHEDULE_TIMES: '08:00,20:00'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

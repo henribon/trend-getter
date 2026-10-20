@@ -25,7 +25,7 @@ async function refresh() {
   try {
     const [state, { runs }] = await Promise.all([api.getState(), api.listRuns()]);
     if (!state.configured) {
-      window.location.replace('/setup');
+      window.location.replace('setup.html');
       return;
     }
     Object.assign(store, { state, runs });
@@ -45,17 +45,27 @@ function schedulePoll() {
 
 async function runNow() {
   renderRunButton(true);
-  const failure = await api.createRun().then(
-    ({ run }) => {
-      store.selectedRunId = run.id;
-      return null;
-    },
-    (error) => error,
-  );
-  await refresh();
-  if (failure) {
-    showNotice(failure.message, 'error');
+  const outcome = await api.createRun(store.state).catch((error) => ({ type: 'error', error }));
+  if (outcome.type === 'external') {
+    openExternalRun(outcome.url);
+    return;
   }
+  if (outcome.type === 'run') {
+    store.selectedRunId = outcome.run.id;
+  }
+  await refresh();
+  if (outcome.type === 'error') {
+    showNotice(outcome.error.message, 'error');
+  }
+}
+
+function openExternalRun(url) {
+  window.open(url, '_blank', 'noopener');
+  renderRunButton(false);
+  showNotice(
+    'No GitHub, clique em "Run workflow". Em cerca de 1 minuto a nova busca é publicada; depois é só recarregar esta página.',
+    'info',
+  );
 }
 
 function selectRun(id) {
@@ -201,6 +211,7 @@ function describeRun(run) {
 function showNotice(message, tone) {
   view.notice.textContent = message;
   view.notice.classList.toggle('notice-error', tone === 'error');
+  view.notice.classList.toggle('notice-info', tone === 'info');
   view.notice.hidden = false;
 }
 
