@@ -25,7 +25,8 @@ Depois disso:
 
 - **Buscar agora** abre o workflow no GitHub; clique em **Run workflow**.
 - **Editar interesses** gera o novo conteúdo e abre o editor do `trends.config.json` no GitHub.
-- Para usar IA ou a API do X, crie os secrets `ANTHROPIC_API_KEY` ou `X_BEARER_TOKEN` em *Settings → Secrets and variables → Actions*.
+- **No GitHub Actions a fonte precisa ser a API oficial do X**: o trends24.in bloqueia os servidores do GitHub com um desafio anti-robô (status 403). Crie um app em [developer.x.com](https://developer.x.com), gere o *Bearer Token* e cadastre-o como secret `X_BEARER_TOKEN` em *Settings → Secrets and variables → Actions*.
+- Para usar IA, cadastre também o secret `ANTHROPIC_API_KEY`.
 - O GitHub pode atrasar execuções agendadas em alguns minutos e desativa crons de repositórios públicos sem atividade por 60 dias (ele avisa por e-mail; basta reativar na aba Actions).
 
 Para gerar o site estático localmente:
@@ -83,7 +84,7 @@ Exemplo no crontab (Linux/macOS):
 | `TREND_PROVIDER` | Fonte | Observações |
 |---|---|---|
 | `auto` (padrão) | API do X se houver `X_BEARER_TOKEN`, senão trends24.in | |
-| `trends24` | Página pública do [trends24.in](https://trends24.in) | Gratuito, sem chave. Depende do layout da página. |
+| `trends24` | Página pública do [trends24.in](https://trends24.in) | Gratuito, sem chave. Funciona em conexões residenciais, mas é bloqueado em servidores como o GitHub Actions. Depende do layout da página. |
 | `x` | [API oficial do X](https://docs.x.com/x-api/trends/get-trends-by-woeid) (`GET /2/trends/by/woeid`) | Requer plano pago da API do X. Traz o volume de posts. |
 
 ## Como as trends são ligadas aos seus assuntos
