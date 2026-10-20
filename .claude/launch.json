@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "trend-getter",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--env-file-if-exists=.env",
+        "--disable-warning=ExperimentalWarning",
+        "src/main.js"
+      ],
+      "env": {
+        "PORT": "3100",
+        "DATABASE_PATH": "data/preview.db"
+      },
+      "port": 3100
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Configurar interesses · Trend Getter</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script type="module" src="/js/setup.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/favicon.svg" alt=""><span>Trend Getter</span></a>
+  </header>
+
+  <main class="page setup">
+    <div class="setup-intro">
+      <h1 id="setup-title">Configure seus interesses</h1>
+      <p id="setup-description">Você faz isso uma única vez. Depois, as trends do X são buscadas automaticamente e você vê só o que importa.</p>
+    </div>
+
+    <form class="form" id="setup-form" novalidate>
+      <label class="field">
+        <span class="field-label">Local das trends</span>
+        <select class="input" id="location" required></select>
+      </label>
+
+      <fieldset class="interests">
+        <legend class="field-label">Assuntos que você acompanha</legend>
+        <div class="interest-columns" aria-hidden="true">
+          <span>Assunto</span>
+          <span>Palavras-chave (opcional, separadas por vírgula)</span>
+        </div>
+        <div class="interest-list" id="interest-list"></div>
+        <button class="button button-ghost add-interest" id="add-interest" type="button">+ Adicionar assunto</button>
+        <div class="suggestions" id="suggestions">
+          <span class="muted">Sugestões:</span>
+        </div>
+      </fieldset>
+
+      <p class="hint" id="matcher-hint"></p>
+      <p class="form-error" id="form-error" role="alert" hidden></p>
+
+      <div class="form-footer">
+        <a class="button button-ghost" id="cancel" href="/" hidden>Cancelar</a>
+        <button class="button" id="save" type="submit">Salvar e começar</button>
+      </div>
+    </form>
+  </main>
+
+  <template id="interest-row-template">
+    <div class="interest-row">
+      <label class="interest-name">
+        <span class="visually-hidden">Assunto</span>
+        <input class="input" name="name" maxlength="60" placeholder="Ex.: Futebol" autocomplete="off">
+      </label>
+      <label class="interest-keywords">
+        <span class="visually-hidden">Palavras-chave</span>
+        <input class="input" name="keywords" placeholder="Ex.: flamengo, libertadores, brasileirão" autocomplete="off">
+      </label>
+      <button class="icon-button" type="button" aria-label="Remover assunto">&times;</button>
+    </div>
+  </template>
+</body>
+</html>

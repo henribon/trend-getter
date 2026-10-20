@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trend Getter</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/styles.css">
+  <script type="module" src="/js/dashboard.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/"><img src="/favicon.svg" alt=""><span>Trend Getter</span></a>
+    <nav class="actions">
+      <a class="button button-ghost" href="/setup">Editar interesses</a>
+      <button class="button" id="run-now" type="button">Buscar agora</button>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="status" id="status" aria-live="polite"></section>
+
+    <p class="notice" id="notice" role="status" hidden></p>
+
+    <section aria-labelledby="run-title">
+      <div class="section-head">
+        <h1 id="run-title">Suas trends</h1>
+        <span class="muted" id="run-meta"></span>
+      </div>
+      <div class="grid" id="interest-grid"></div>
+      <details class="all-trends" id="all-trends" hidden>
+        <summary id="all-trends-summary"></summary>
+        <ol class="trend-list" id="all-trends-list"></ol>
+      </details>
+    </section>
+
+    <section aria-labelledby="history-title">
+      <h2 id="history-title">Histórico de buscas</h2>
+      <ol class="history-list" id="history-list"></ol>
+    </section>
+  </main>
+
+  <template id="interest-card-template">
+    <article class="card">
+      <header class="card-head">
+        <h3 class="card-title"></h3>
+        <span class="badge"></span>
+      </header>
+      <ol class="trend-list"></ol>
+      <p class="empty">Nada sobre esse assunto nesta busca.</p>
+    </article>
+  </template>
+
+  <template id="trend-template">
+    <li class="trend">
+      <span class="trend-rank"></span>
+      <span class="trend-body">
+        <a class="trend-name" target="_blank" rel="noopener noreferrer"></a>
+        <span class="trend-reason"></span>
+      </span>
+      <span class="trend-count"></span>
+    </li>
+  </template>
+
+  <template id="history-item-template">
+    <li>
+      <button class="history-item" type="button">
+        <span class="history-date"></span>
+        <span class="history-summary"></span>
+      </button>
+    </li>
+  </template>
+</body>
+</html>
