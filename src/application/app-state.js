@@ -10,7 +10,11 @@ export function describeAppState({ mode, settings, schedule, collecting, provide
     configured: settings !== null,
     settings,
     locations: PUBLIC_LOCATIONS,
-    schedule: { times: schedule.times, nextRunAt: schedule.nextRunAt?.toISOString() ?? null },
+    schedule: {
+      automatic: schedule.automatic,
+      times: schedule.times,
+      nextRunAt: schedule.nextRunAt?.toISOString() ?? null,
+    },
     collecting,
     source: provider.label,
     matcher: { name: matcher.name, label: matcher.label },

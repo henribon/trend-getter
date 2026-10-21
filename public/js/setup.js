@@ -8,9 +8,9 @@ const SUGGESTIONS = ['Tecnologia', 'Futebol', 'Política', 'Economia', 'Games', 
 
 const COMMIT_INSTRUCTIONS = Object.freeze({
   prefilled:
-    'Clique em "Abrir no GitHub": o arquivo trends.config.json já vai preenchido. Lá, clique em "Commit changes". A primeira busca roda em cerca de 1 minuto e aparece neste site.',
+    'Clique em "Abrir no GitHub": o arquivo trends.config.json já vai preenchido. Lá, clique em "Commit changes". Em cerca de 1 minuto o site é atualizado; depois é só clicar em "Buscar agora".',
   manual:
-    'Clique em "Abrir no GitHub", troque todo o conteúdo do arquivo pelo texto abaixo e clique em "Commit changes". O site é atualizado com uma nova busca em cerca de 1 minuto.',
+    'Clique em "Abrir no GitHub", troque todo o conteúdo do arquivo pelo texto abaixo e clique em "Commit changes". O site é atualizado em cerca de 1 minuto, sem fazer uma nova busca.',
 });
 
 const view = {
@@ -47,16 +47,21 @@ async function init() {
 }
 
 function renderIntro({ configured, schedule, mode }) {
-  const times = formatList(schedule.times);
   const commitNote = mode === 'static' ? ' Ao salvar, você confirma a configuração com um commit no GitHub.' : '';
   if (!configured) {
-    view.description.textContent = `Você faz isso uma única vez. Depois, as trends do X são buscadas automaticamente todos os dias às ${times} e você vê só o que importa.${commitNote}`;
+    view.description.textContent = `Você faz isso uma única vez. Depois, ${describeSearches(schedule)} e você vê só o que importa.${commitNote}`;
     return;
   }
   view.title.textContent = 'Editar interesses';
-  view.description.textContent = `As buscas continuam automáticas, todos os dias às ${times}.${commitNote}`;
+  view.description.textContent = `Mudar os interesses não dispara uma busca: ${describeSearches(schedule)}.${commitNote}`;
   view.save.textContent = 'Salvar alterações';
   view.cancel.hidden = false;
+}
+
+function describeSearches({ automatic, times }) {
+  return automatic
+    ? `as trends do X são buscadas automaticamente todos os dias às ${formatList(times)}`
+    : 'as trends do X são buscadas quando você clicar em "Buscar agora"';
 }
 
 function renderLocations(locations, selectedId) {

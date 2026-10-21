@@ -17,6 +17,7 @@ export function readEnv(source = process.env) {
     port: toPositiveInteger(source.PORT, DEFAULTS.port),
     host: source.HOST || DEFAULTS.host,
     databasePath: resolveFromRoot(source.DATABASE_PATH || DEFAULTS.databasePath),
+    autoSearch: source.AUTO_SEARCH === 'true',
     scheduleTimes: parseTimes(source.SCHEDULE_TIMES || DEFAULTS.scheduleTimes),
     trendProvider: pickOption('TREND_PROVIDER', source.TREND_PROVIDER, ['auto', 'trends24', 'x'], DEFAULTS.trendProvider),
     xBearerToken: source.X_BEARER_TOKEN || '',

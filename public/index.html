@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' https://api.github.com; img-src 'self' data:; base-uri 'none'; form-action 'self'">
   <title>Trend Getter</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/styles.css">
@@ -39,6 +40,27 @@
       <ol class="history-list" id="history-list"></ol>
     </section>
   </main>
+
+  <dialog class="dialog" id="token-dialog" aria-labelledby="token-title">
+    <form class="dialog-body" method="dialog">
+      <h2 id="token-title">Conectar ao GitHub</h2>
+      <p class="muted">Para o botão iniciar a busca daqui mesmo, este navegador precisa de um token do GitHub que só pode rodar o workflow deste repositório. O token fica salvo apenas neste navegador.</p>
+      <ol class="steps">
+        <li>Abra a <a id="token-create-link" target="_blank" rel="noopener noreferrer">criação do token</a> (já vem com a permissão <strong>Actions: Read and write</strong>).</li>
+        <li>Em <strong>Repository access</strong>, escolha <strong>Only select repositories</strong> e marque só este repositório.</li>
+        <li>Clique em <strong>Generate token</strong>, copie e cole abaixo.</li>
+      </ol>
+      <label class="field">
+        <span class="field-label">Token do GitHub</span>
+        <input class="input" id="token-input" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_..." required>
+      </label>
+      <p class="form-error" id="token-error" role="alert" hidden></p>
+      <div class="dialog-actions">
+        <button class="button button-ghost" type="submit" value="cancel" formnovalidate>Cancelar</button>
+        <button class="button" type="submit" value="save">Salvar e buscar</button>
+      </div>
+    </form>
+  </dialog>
 
   <template id="interest-card-template">
     <article class="card">

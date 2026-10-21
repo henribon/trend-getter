@@ -11,7 +11,8 @@ export function readSiteEnv(source = process.env) {
     repository: source.GITHUB_REPOSITORY,
     branch: source.GITHUB_REF_NAME || 'main',
     serverUrl: source.GITHUB_SERVER_URL || 'https://github.com',
+    apiUrl: source.GITHUB_API_URL || 'https://api.github.com',
     outputDir: resolveInsideRoot(source.SITE_OUTPUT_DIR || 'dist'),
-    forceCollect: source.FORCE_COLLECT === 'true',
+    trigger: source.SITE_TRIGGER || '',
   });
 }

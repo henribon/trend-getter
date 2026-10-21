@@ -1,9 +1,9 @@
 name: Buscar trends
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 11,23 * * *'
-  workflow_dispatch:
   push:
     branches: [main]
     paths-ignore:
@@ -20,6 +20,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name != 'schedule' || vars.AUTO_SEARCH == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,11 +37,12 @@ jobs:
       - id: pages
         uses: actions/configure-pages@v6
 
-      - name: Buscar trends e gerar o site
+      - name: Gerar o site
         run: npm run build:site
         env:
           SITE_URL: ${{ steps.pages.outputs.base_url }}
-          FORCE_COLLECT: ${{ github.event_name != 'push' }}
+          SITE_TRIGGER: ${{ github.event_name }}
+          AUTO_SEARCH: ${{ vars.AUTO_SEARCH }}
           TZ: America/Sao_Paulo
           SCHEDULE_TIMES: '08:00,20:00'
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

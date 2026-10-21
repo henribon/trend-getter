@@ -4,9 +4,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, test } from 'node:test';
 import { buildGithubLinks } from '../src/application/github-links.js';
-import { shouldCollectForSite } from '../src/application/site-collection-policy.js';
+import {
+  describeSkippedCollection,
+  shouldCollectForSite,
+  SITE_TRIGGER,
+} from '../src/application/site-collection-policy.js';
 import { ValidationError } from '../src/domain/errors.js';
-import { parseTimes } from '../src/domain/schedule.js';
 import { ConfigFileSettingsRepository } from '../src/infrastructure/config-file-settings-repository.js';
 import { MemoryRunRepository } from '../src/infrastructure/memory-run-repository.js';
 import { fetchPublishedSite } from '../src/infrastructure/site/published-site.js';
@@ -14,19 +17,23 @@ import { fetchPublishedSite } from '../src/infrastructure/site/published-site.js
 const workspace = mkdtempSync(path.join(tmpdir(), 'trend-getter-'));
 after(() => rmSync(workspace, { recursive: true, force: true }));
 
-const times = parseTimes('08:00,20:00');
 const settings = { locationId: 'brazil', interests: [{ name: 'Futebol', keywords: [] }] };
-const now = new Date(2026, 9, 20, 15, 0);
 
-test('a política só busca quando há configuração e algo mudou ou ficou desatualizado', () => {
-  const recentRun = new Date(2026, 9, 20, 8, 5);
-  const base = { settings, publishedSettings: settings, lastSuccessfulRunAt: recentRun, times, now, force: false };
+test('o botão sempre busca, o commit nunca busca e o horário só busca se a busca automática estiver ligada', () => {
+  const decide = (trigger, autoSearch = false) => shouldCollectForSite({ settings, trigger, autoSearch });
 
-  assert.equal(shouldCollectForSite({ ...base, settings: null, force: true }), false);
-  assert.equal(shouldCollectForSite(base), false);
-  assert.equal(shouldCollectForSite({ ...base, force: true }), true);
-  assert.equal(shouldCollectForSite({ ...base, publishedSettings: null }), true);
-  assert.equal(shouldCollectForSite({ ...base, lastSuccessfulRunAt: new Date(2026, 9, 19, 21, 0) }), true);
+  assert.equal(decide(SITE_TRIGGER.manual), true);
+  assert.equal(decide(SITE_TRIGGER.push), false);
+  assert.equal(decide(SITE_TRIGGER.push, true), false);
+  assert.equal(decide(SITE_TRIGGER.schedule), false);
+  assert.equal(decide(SITE_TRIGGER.schedule, true), true);
+  assert.equal(shouldCollectForSite({ settings: null, trigger: SITE_TRIGGER.manual, autoSearch: true }), false);
+});
+
+test('explica por que a busca não rodou', () => {
+  const configFileName = 'trends.config.json';
+  assert.match(describeSkippedCollection({ settings: null, trigger: 'push', configFileName }), /Sem trends\.config\.json/);
+  assert.match(describeSkippedCollection({ settings, trigger: 'push', configFileName }), /Commit recebido/);
 });
 
 test('o repositório em memória continua a numeração e respeita o limite', () => {
@@ -54,9 +61,10 @@ test('o arquivo de configuração é opcional, mas precisa ser válido', () => {
   assert.throws(() => repository.load(), ValidationError);
 });
 
-test('monta os links do GitHub', () => {
-  const links = buildGithubLinks({
+test('monta os links do GitHub e o disparo do workflow', () => {
+  const { createToken, ...links } = buildGithubLinks({
     serverUrl: 'https://github.com',
+    apiUrl: 'https://api.github.com',
     repository: 'dono/repo',
     branch: 'main',
     workflowFile: 'trends.yml',
@@ -67,7 +75,14 @@ test('monta os links do GitHub', () => {
     runWorkflow: 'https://github.com/dono/repo/actions/workflows/trends.yml',
     editConfig: 'https://github.com/dono/repo/edit/main/trends.config.json',
     createConfig: 'https://github.com/dono/repo/new/main?filename=trends.config.json',
+    dispatch: { url: 'https://api.github.com/repos/dono/repo/actions/workflows/trends.yml/dispatches', ref: 'main' },
   });
+
+  const template = new URL(createToken);
+  assert.equal(template.pathname, '/settings/personal-access-tokens/new');
+  assert.equal(template.searchParams.get('target_name'), 'dono');
+  assert.equal(template.searchParams.get('actions'), 'write');
+  assert.ok(template.searchParams.get('name').length <= 40);
 });
 
 test('lê o histórico do site publicado e trata o primeiro deploy', async () => {

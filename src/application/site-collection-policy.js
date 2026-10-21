@@ -1,16 +1,22 @@
-import { isOutdated } from '../domain/schedule.js';
+export const SITE_TRIGGER = Object.freeze({
+  manual: 'workflow_dispatch',
+  schedule: 'schedule',
+  push: 'push',
+});
 
-export function shouldCollectForSite({ settings, publishedSettings, lastSuccessfulRunAt, times, now, force }) {
+export function shouldCollectForSite({ settings, trigger, autoSearch }) {
   if (!settings) {
     return false;
   }
-  return force || !haveSameInterests(settings, publishedSettings) || isOutdated(lastSuccessfulRunAt, times, now);
+  return trigger === SITE_TRIGGER.manual || (trigger === SITE_TRIGGER.schedule && autoSearch);
 }
 
-function haveSameInterests(current, published) {
-  return fingerprint(current) === fingerprint(published);
-}
-
-function fingerprint(settings) {
-  return settings ? JSON.stringify({ locationId: settings.locationId, interests: settings.interests }) : null;
+export function describeSkippedCollection({ settings, trigger, configFileName }) {
+  if (!settings) {
+    return `Sem ${configFileName}: publicando a tela de configuração.`;
+  }
+  if (trigger === SITE_TRIGGER.push) {
+    return 'Commit recebido: site atualizado sem fazer uma nova busca.';
+  }
+  return 'Busca automática desligada: site atualizado sem fazer uma nova busca.';
 }

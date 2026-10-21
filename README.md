@@ -1,33 +1,52 @@
 # Trend Getter
 
-Site que busca os **trending topics do X (Twitter) duas vezes por dia** e destaca só as trends ligadas aos assuntos que você acompanha.
+Site que busca os **trending topics do X (Twitter)** quando você clica em **Buscar agora** e destaca só as trends ligadas aos assuntos que você acompanha. Se quiser, a busca também pode rodar sozinha duas vezes por dia.
 
 1. No primeiro acesso você configura **uma única vez** o local e os seus assuntos de interesse (com palavras-chave opcionais).
-2. A partir daí um cron busca as trends nos horários definidos (padrão **08:00 e 20:00**, horário de Brasília).
+2. A busca é **manual** por padrão: um clique em **Buscar agora**. A busca automática (padrão **08:00 e 20:00**, horário de Brasília) é opcional.
 3. O painel mostra, por assunto, as trends relacionadas, o motivo da relação, todas as trends da busca e o histórico.
 
 O mesmo código roda de dois jeitos:
 
-| Modo | Onde | Cron | Configuração |
+| Modo | Onde | Busca | Configuração |
 |---|---|---|---|
-| **Site no GitHub Pages** | `https://<usuário>.github.io/trend-getter/` | GitHub Actions | arquivo `trends.config.json` no repositório, criado pela própria tela do site |
-| **Servidor local** | `http://localhost:3000` | agendador interno do Node | salva no SQLite pela tela do site |
+| **Site no GitHub Pages** | `https://<usuário>.github.io/trend-getter/` | botão que dispara o GitHub Actions | arquivo `trends.config.json` no repositório, criado pela própria tela do site |
+| **Servidor local** | `http://localhost:3000` | botão que busca na hora | salva no SQLite pela tela do site |
 
 ## Site no GitHub Pages
 
-O workflow [`.github/workflows/trends.yml`](.github/workflows/trends.yml) roda às 11:00 e 23:00 UTC (08:00 e 20:00 em Brasília), busca as trends e publica um site estático no GitHub Pages. O histórico fica nos próprios arquivos publicados (`data/runs.json`), então não há banco nem commits automáticos.
+O workflow [`.github/workflows/trends.yml`](.github/workflows/trends.yml) busca as trends e publica um site estático no GitHub Pages. O histórico fica nos próprios arquivos publicados (`data/runs.json`): **nenhuma trend é salva por commit**.
+
+| Gatilho do workflow | Faz uma nova busca? |
+|---|---|
+| Botão **Buscar agora** (ou *Run workflow* na aba Actions) | Sim |
+| Commit na `main` (código ou `trends.config.json`) | Não: só republica o site com os dados que já existem |
+| Horário (11:00 e 23:00 UTC) | Só se a variável `AUTO_SEARCH` for `true` |
+
+Primeiro acesso:
 
 1. Abra o site. Sem configuração, ele mostra a tela de interesses.
 2. Preencha e clique em **Salvar e começar**: o site abre o GitHub com o `trends.config.json` já preenchido. Clique em **Commit changes**.
-3. Esse commit dispara o workflow; em cerca de 1 minuto a primeira busca aparece no site.
+3. Em cerca de 1 minuto o site é atualizado. Clique em **Buscar agora**.
 
-Depois disso:
+### Botão Buscar agora
 
-- **Buscar agora** abre o workflow no GitHub; clique em **Run workflow**.
-- **Editar interesses** gera o novo conteúdo e abre o editor do `trends.config.json` no GitHub.
+O botão chama a API do GitHub para disparar o workflow e mostra a nova busca sozinho assim que ela é publicada (cerca de 1 minuto). Para isso, no primeiro clique o site pede um **token fine-grained do GitHub**:
+
+- o link do site já abre a criação do token com a permissão **Actions: Read and write**;
+- em **Repository access**, escolha **Only select repositories** e marque só o `trend-getter`;
+- o token fica salvo apenas no seu navegador (`localStorage`) e só serve para disparar o workflow. Se ele expirar ou for revogado, o site pede outro.
+
+### Busca automática (opcional)
+
+Para voltar a buscar sozinho às 08:00 e 20:00, crie a variável `AUTO_SEARCH` com valor `true` em *Settings → Secrets and variables → Actions → Variables*. Sem ela, as execuções agendadas aparecem como puladas na aba Actions e nenhuma busca é feita.
+
+### Fonte e IA
+
+- **Editar interesses** gera o novo conteúdo e abre o editor do `trends.config.json` no GitHub. Salvar os interesses não dispara uma busca.
 - **No GitHub Actions a fonte precisa ser a API oficial do X**: o trends24.in bloqueia os servidores do GitHub com um desafio anti-robô (status 403). Crie um app em [developer.x.com](https://developer.x.com), gere o *Bearer Token* e cadastre-o como secret `X_BEARER_TOKEN` em *Settings → Secrets and variables → Actions*.
 - Para usar IA, cadastre também o secret `ANTHROPIC_API_KEY`.
-- O GitHub pode atrasar execuções agendadas em alguns minutos e desativa crons de repositórios públicos sem atividade por 60 dias (ele avisa por e-mail; basta reativar na aba Actions).
+- Com a busca automática ligada, o GitHub pode atrasar execuções agendadas em alguns minutos e desativa crons de repositórios públicos sem atividade por 60 dias (ele avisa por e-mail; basta reativar na aba Actions).
 
 Para gerar o site estático localmente:
 
@@ -55,12 +74,11 @@ copy .env.example .env
 npm start
 ```
 
-Abra http://localhost:3000. Enquanto os interesses não forem configurados, o site redireciona para `/setup.html` e nenhuma busca é feita. Ao salvar, a primeira busca roda na hora.
+Abra http://localhost:3000. Enquanto os interesses não forem configurados, o site redireciona para `/setup.html` e nenhuma busca é feita. Depois de salvar, clique em **Buscar agora**.
 
-## Agendamento
+## Busca automática no servidor local
 
-- O servidor agenda as buscas em `SCHEDULE_TIMES` (horário local, definido por `TZ`).
-- Se o servidor ficou desligado e perdeu um horário, ao iniciar ele faz a busca que faltou.
+- Desligada por padrão. Com `AUTO_SEARCH=true` no `.env`, o servidor busca em `SCHEDULE_TIMES` (horário local, definido por `TZ`), faz a primeira busca logo após a configuração e, se ficou desligado e perdeu um horário, faz a busca que faltou ao iniciar.
 - Prefere usar um cron do sistema? Rode a busca avulsa (sai com código 1 em caso de falha):
 
 ```bash
@@ -104,7 +122,8 @@ Com IA, o modelo padrão é `claude-opus-5-5` (troque em `ANTHROPIC_MODEL`). O f
 | `PORT` | `3000` | Porta HTTP |
 | `HOST` | `127.0.0.1` | Use `0.0.0.0` para expor na rede |
 | `TZ` | fuso do sistema | Fuso dos horários agendados, ex.: `America/Sao_Paulo` |
-| `SCHEDULE_TIMES` | `08:00,20:00` | Horários das buscas, separados por vírgula |
+| `AUTO_SEARCH` | `false` | `true` liga a busca automática nos horários de `SCHEDULE_TIMES` |
+| `SCHEDULE_TIMES` | `08:00,20:00` | Horários da busca automática, separados por vírgula |
 | `HISTORY_LIMIT` | `60` | Quantidade de buscas guardadas no histórico |
 | `DATABASE_PATH` | `data/trend-getter.db` | Arquivo SQLite |
 | `TREND_PROVIDER` | `auto` | `auto`, `trends24` ou `x` |

@@ -1,6 +1,6 @@
 import { APP_MODE, describeAppState } from './application/app-state.js';
 import { buildGithubLinks } from './application/github-links.js';
-import { shouldCollectForSite } from './application/site-collection-policy.js';
+import { describeSkippedCollection, shouldCollectForSite } from './application/site-collection-policy.js';
 import { readEnv } from './config/env.js';
 import { CONFIG_FILE_NAME, CONFIG_FILE_PATH, PUBLIC_DIR } from './config/paths.js';
 import { readSiteEnv, WORKFLOW_FILE_NAME } from './config/site-env.js';
@@ -11,6 +11,14 @@ import { MemoryRunRepository } from './infrastructure/memory-run-repository.js';
 import { fetchPublishedSite } from './infrastructure/site/published-site.js';
 import { writeStaticSite } from './infrastructure/site/static-site-writer.js';
 import { createServices } from './services.js';
+
+function describeSchedule(env) {
+  return {
+    automatic: env.autoSearch,
+    times: env.autoSearch ? env.scheduleTimes.map(({ label }) => label) : [],
+    nextRunAt: env.autoSearch ? nextOccurrence(env.scheduleTimes, new Date()) : null,
+  };
+}
 
 async function buildSite() {
   const env = readEnv();
@@ -25,18 +33,11 @@ async function buildSite() {
   });
 
   const settings = settingsService.get();
-  const collect = shouldCollectForSite({
-    settings,
-    publishedSettings: published.state?.settings ?? null,
-    lastSuccessfulRunAt: runRepository.lastSuccessfulRunAt(),
-    times: env.scheduleTimes,
-    now: new Date(),
-    force: site.forceCollect,
-  });
-  if (collect) {
+  const decision = { settings, trigger: site.trigger, autoSearch: env.autoSearch, configFileName: CONFIG_FILE_NAME };
+  if (shouldCollectForSite(decision)) {
     await job.run('GitHub Actions');
   } else {
-    logger.info(settings ? 'Busca dispensada: os dados publicados já estão em dia.' : `Sem ${CONFIG_FILE_NAME}: publicando a tela de configuração.`);
+    logger.info(describeSkippedCollection(decision));
   }
 
   await writeStaticSite({
@@ -46,7 +47,7 @@ async function buildSite() {
     state: describeAppState({
       mode: APP_MODE.static,
       settings,
-      schedule: { times: env.scheduleTimes.map(({ label }) => label), nextRunAt: nextOccurrence(env.scheduleTimes, new Date()) },
+      schedule: describeSchedule(env),
       collecting: false,
       provider,
       matcher,

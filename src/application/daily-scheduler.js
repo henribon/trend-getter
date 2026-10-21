@@ -1,6 +1,7 @@
 import { nextOccurrence } from '../domain/schedule.js';
 
 export class DailyScheduler {
+  isAutomatic = true;
   #times;
   #task;
   #logger;

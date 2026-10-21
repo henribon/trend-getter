@@ -1,8 +1,11 @@
 import { api } from './api.js';
 import { byId, cloneTemplate, createElement, setText } from './dom.js';
 import { formatDateTime, formatList, formatScheduledTime, formatTweetCount, pluralize } from './format.js';
+import { requestToken } from './token-dialog.js';
 
 const POLL_INTERVAL_MS = 3000;
+const PUBLISH_POLL_INTERVAL_MS = 10_000;
+const PUBLISH_TIMEOUT_MS = 5 * 60_000;
 
 const view = {
   status: byId('status'),
@@ -43,29 +46,56 @@ function schedulePoll() {
   pollTimer = setTimeout(refresh, POLL_INTERVAL_MS);
 }
 
-async function runNow() {
+const RUN_OUTCOME_HANDLERS = Object.freeze({
+  run: showFinishedRun,
+  dispatched: waitForPublishedRun,
+  'needs-token': askTokenAndRun,
+  error: showRunError,
+});
+
+async function startRun(options) {
   renderRunButton(true);
-  const outcome = await api.createRun(store.state).catch((error) => ({ type: 'error', error }));
-  if (outcome.type === 'external') {
-    openExternalRun(outcome.url);
-    return;
-  }
-  if (outcome.type === 'run') {
-    store.selectedRunId = outcome.run.id;
-  }
+  const outcome = await api.createRun(store.state, options).catch((error) => ({ type: 'error', error }));
+  await RUN_OUTCOME_HANDLERS[outcome.type](outcome);
+}
+
+async function showFinishedRun({ run }) {
+  store.selectedRunId = run.id;
   await refresh();
-  if (outcome.type === 'error') {
-    showNotice(outcome.error.message, 'error');
+}
+
+async function showRunError({ error }) {
+  await refresh();
+  showNotice(error.message, 'error');
+}
+
+async function askTokenAndRun(outcome) {
+  renderRunButton(false);
+  const token = await requestToken(outcome);
+  if (token) {
+    await startRun({ token });
   }
 }
 
-function openExternalRun(url) {
-  window.open(url, '_blank', 'noopener');
+async function waitForPublishedRun() {
+  const latestRunId = store.runs[0]?.id ?? 0;
+  const deadline = Date.now() + PUBLISH_TIMEOUT_MS;
+  showNotice('Busca iniciada no GitHub. Os resultados aparecem aqui sozinhos em cerca de 1 minuto.', 'info');
+  while (Date.now() < deadline) {
+    await wait(PUBLISH_POLL_INTERVAL_MS);
+    const { runs } = await api.listRuns().catch(() => ({ runs: [] }));
+    if ((runs[0]?.id ?? 0) > latestRunId) {
+      store.selectedRunId = null;
+      await refresh();
+      return;
+    }
+  }
   renderRunButton(false);
-  showNotice(
-    'No GitHub, clique em "Run workflow". Em cerca de 1 minuto a nova busca é publicada; depois é só recarregar esta página.',
-    'info',
-  );
+  showNotice('A busca ainda não foi publicada. Recarregue a página em alguns minutos ou confira a aba Actions no GitHub.', 'warning');
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function selectRun(id) {
@@ -90,8 +120,7 @@ function renderStatus({ settings, locations, schedule, source, matcher, collecti
   const locationName = locations.find(({ id }) => id === settings.locationId)?.name ?? '—';
   const chips = [
     ['Local', locationName],
-    ['Próxima busca', schedule.nextRunAt ? formatScheduledTime(schedule.nextRunAt) : '—'],
-    ['Horários', formatList(schedule.times)],
+    ...describeSchedule(schedule),
     ['Fonte', source],
     ['Correspondência', matcher.label],
   ].map(([label, value]) => createChip(label, value));
@@ -99,6 +128,16 @@ function renderStatus({ settings, locations, schedule, source, matcher, collecti
     chips.unshift(createElement('span', { className: 'chip chip-live', text: 'Buscando trends…' }));
   }
   view.status.replaceChildren(...chips);
+}
+
+function describeSchedule({ automatic, times, nextRunAt }) {
+  if (!automatic) {
+    return [['Busca', 'manual, pelo botão Buscar agora']];
+  }
+  return [
+    ['Próxima busca', nextRunAt ? formatScheduledTime(nextRunAt) : '—'],
+    ['Horários', formatList(times)],
+  ];
 }
 
 function createChip(label, value) {
@@ -138,9 +177,10 @@ function renderEmptyRun() {
   view.runTitle.textContent = 'Suas trends';
   view.runMeta.textContent = '';
   view.allTrends.hidden = true;
+  const waitHint = store.state.schedule.automatic ? ' ou aguarde o próximo horário agendado' : '';
   const message = store.state.collecting
     ? 'A primeira busca está em andamento. Os resultados aparecem aqui em instantes.'
-    : 'Nenhuma busca ainda. Clique em "Buscar agora" ou aguarde o próximo horário agendado.';
+    : `Nenhuma busca ainda. Clique em "Buscar agora"${waitHint}.`;
   view.grid.replaceChildren(createElement('p', { className: 'empty-state', text: message }));
 }
 
@@ -219,5 +259,5 @@ function hideNotice() {
   view.notice.hidden = true;
 }
 
-view.runNow.addEventListener('click', runNow);
+view.runNow.addEventListener('click', () => startRun());
 refresh();

@@ -9,7 +9,7 @@ export function registerApiRoutes(router, { settingsService, collector, job, run
     describeAppState({
       mode: APP_MODE.server,
       settings: settingsService.get(),
-      schedule: { times: scheduler.times, nextRunAt: scheduler.nextRunAt },
+      schedule: { automatic: scheduler.isAutomatic, times: scheduler.times, nextRunAt: scheduler.nextRunAt },
       collecting: collector.isCollecting,
       provider,
       matcher,
@@ -19,7 +19,7 @@ export function registerApiRoutes(router, { settingsService, collector, job, run
     .on('GET', '/api/state', ({ response }) => sendJson(response, 200, describeState()))
     .on('PUT', '/api/settings', async ({ request, response }) => {
       const { settings, isFirstSetup } = settingsService.save(await readJson(request));
-      if (isFirstSetup) {
+      if (isFirstSetup && scheduler.isAutomatic) {
         job.runSafely('configuração inicial');
       }
       sendJson(response, 200, { settings });
