@@ -1,9 +1,11 @@
 {
   "name": "trend-getter",
+  "productName": "Trend Getter",
   "version": "1.0.0",
   "description": "Busca as trends do X (Twitter) duas vezes por dia e destaca as que combinam com os seus interesses.",
   "type": "module",
   "private": true,
+  "main": "src/desktop/main.js",
   "engines": {
     "node": ">=22.13"
   },
@@ -12,9 +14,42 @@
     "dev": "node --watch --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/main.js",
     "collect": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning src/collect.js",
     "build:site": "node --env-file-if-exists=.env src/build-site.js",
-    "test": "node --test --disable-warning=ExperimentalWarning"
+    "test": "node --test --disable-warning=ExperimentalWarning",
+    "desktop": "electron .",
+    "package:mac": "electron-builder --mac --publish never"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0"
+  },
+  "devDependencies": {
+    "electron": "44.6.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "io.github.henribon.trendgetter",
+    "artifactName": "Trend-Getter-${version}-${arch}.${ext}",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "package.json",
+      "src/**/*",
+      "public/**/*"
+    ],
+    "npmRebuild": false,
+    "mac": {
+      "category": "public.app-category.news",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": "-",
+      "hardenedRuntime": false
+    }
   }
 }

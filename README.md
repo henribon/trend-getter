@@ -1,17 +1,64 @@
 # Trend Getter
 
-Site que busca os **trending topics do X (Twitter)** quando você clica em **Buscar agora** e destaca só as trends ligadas aos assuntos que você acompanha. Se quiser, a busca também pode rodar sozinha duas vezes por dia.
+App que busca os **trending topics do X (Twitter)** quando você clica em **Buscar agora** e destaca só as trends ligadas aos assuntos que você acompanha. Se quiser, a busca também pode rodar sozinha duas vezes por dia.
 
 1. No primeiro acesso você configura **uma única vez** o local e os seus assuntos de interesse (com palavras-chave opcionais).
 2. A busca é **manual** por padrão: um clique em **Buscar agora**. A busca automática (padrão **08:00 e 20:00**, horário de Brasília) é opcional.
 3. O painel mostra, por assunto, as trends relacionadas, o motivo da relação, todas as trends da busca e o histórico.
 
-O mesmo código roda de dois jeitos:
+O mesmo código roda de três jeitos:
 
 | Modo | Onde | Busca | Configuração |
 |---|---|---|---|
-| **Site no GitHub Pages** | `https://<usuário>.github.io/trend-getter/` | botão que dispara o GitHub Actions | arquivo `trends.config.json` no repositório, criado pela própria tela do site |
+| **App para Mac** | janela própria e ícone na barra de menus | botão ou horários, de graça pelo trends24.in | salva no SQLite pela tela do app |
+| **Site no GitHub Pages** | `https://<usuário>.github.io/trend-getter/` | botão que dispara o GitHub Actions (precisa da API paga do X) | arquivo `trends.config.json` no repositório, criado pela própria tela do site |
 | **Servidor local** | `http://localhost:3000` | botão que busca na hora | salva no SQLite pela tela do site |
+
+## App para Mac
+
+Roda no seu Mac com janela própria e um ícone na barra de menus. Como a busca sai da sua internet, e não de um servidor, o trends24.in funciona: **não precisa da API paga do X**.
+
+### Instalar
+
+1. Baixe o `.dmg` em [Releases](https://github.com/henribon/trend-getter/releases): `arm64` para Macs com chip Apple (M1 ou mais novo), `x64` para Macs com Intel. Enquanto não houver uma versão publicada, ele fica nos artefatos do workflow **App para Mac**, na aba Actions.
+2. Abra o `.dmg` e arraste o **Trend Getter** para **Aplicativos**.
+3. O app não tem assinatura de desenvolvedor da Apple, então o macOS bloqueia a primeira abertura. Tente abrir uma vez, vá em *Ajustes do Sistema → Privacidade e Segurança* e clique em **Abrir Mesmo Assim**. Ou rode no Terminal:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Trend Getter.app"
+```
+
+### Usar
+
+- Na primeira abertura, configure o local e os seus assuntos.
+- Fechar a janela não encerra o app: ele continua no ícone da barra de menus, para fazer as buscas agendadas. Para sair, use **Sair do Trend Getter** nesse ícone (ou ⌘Q com a janela aberta).
+- No ícone da barra de menus:
+  - **Buscar sozinho às 08:00 e 20:00** liga ou desliga a busca automática (o app reabre para aplicar).
+  - **Abrir ao iniciar o Mac** abre o app só na barra de menus quando você entra no Mac, para não perder os horários. O macOS pode pedir aprovação em *Ajustes do Sistema → Geral → Itens de Início*.
+  - **Configurações avançadas…** abre o arquivo `configuracoes.env` (horários, chave da Anthropic para a IA, token da API do X). Depois de editar, saia do app e abra de novo.
+- Depois de uma busca automática, uma notificação mostra as trends ligadas aos seus assuntos, ou avisa se a busca falhou.
+- Se o Mac estava dormindo ou desligado no horário, a busca que faltou é feita quando ele acorda ou quando o app abre.
+- Os dados ficam em `~/Library/Application Support/Trend Getter/`.
+
+### Gerar o app no seu Mac
+
+```bash
+npm install
+```
+
+```bash
+npm run desktop
+```
+
+```bash
+npm run package:mac
+```
+
+`npm run desktop` abre o app direto do código. `npm run package:mac` gera os `.dmg` em `release/`. O app gerado no seu próprio Mac (`release/mac-arm64/Trend Getter.app`) abre sem o bloqueio do passo 3.
+
+### Publicar uma versão
+
+Atualize `version` no `package.json` e crie uma tag com o mesmo número (ex.: `git tag v1.0.0` e `git push origin v1.0.0`). O workflow [`.github/workflows/mac-app.yml`](.github/workflows/mac-app.yml) gera os `.dmg` num Mac do GitHub, confere se o app abre e publica a versão em Releases. Nos outros pushes que mexem no código, ele gera os `.dmg` só como artefato.
 
 ## Site no GitHub Pages
 
@@ -149,12 +196,15 @@ src/
   application/     casos de uso: coletor, agendador, configurações
   infrastructure/  SQLite, arquivo de configuração, fontes de trends, correspondência e geração do site
   http/            servidor, rotas e arquivos estáticos
-  main.js          servidor + agendador
+  desktop/         app para Mac (Electron): janela, barra de menus, notificações e configurações
+  app.js           servidor + agendador, usado pelo main.js e pelo app para Mac
+  main.js          servidor local
   collect.js       busca avulsa para cron externo
   build-site.js    busca + geração do site estático (GitHub Actions)
 public/            front-end sem framework (server-api.js no servidor, static-api.js no Pages)
+build/             ícone do app para Mac
 test/              testes com node:test
-.github/workflows/ cron do GitHub Actions + deploy no Pages
+.github/workflows/ cron do GitHub Actions + deploy no Pages, build do app para Mac
 ```
 
 ## Testes

@@ -1,0 +1,66 @@
+name: App para Mac
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['**']
+    tags: ['v*']
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'build/**'
+      - 'test/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/mac-app.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mac-app-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Gerar o app
+        run: npm run package:mac
+
+      - name: Conferir se o app abre
+        run: |
+          "release/mac-arm64/Trend Getter.app/Contents/MacOS/Trend Getter" > app.log 2>&1 &
+          pid=$!
+          url=''
+          for _ in $(seq 60); do
+            url=$(grep -Eo 'http://127\.0\.0\.1:[0-9]+' app.log | head -n 1 || true)
+            [ -n "$url" ] && break
+            sleep 1
+          done
+          cat app.log
+          curl -fsS "$url/api/state"
+          kill "$pid"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Trend-Getter-mac
+          path: release/*.dmg
+          if-no-files-found: error
+
+      - name: Publicar a versão
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: gh release create "$GITHUB_REF_NAME" release/*.dmg --title "Trend Getter $GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

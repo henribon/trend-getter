@@ -4,15 +4,21 @@ import { countMatchedTrends } from '../domain/trend.js';
 export class CollectionJob {
   #collector;
   #logger;
+  #listeners = new Set();
 
   constructor({ collector, logger }) {
     this.#collector = collector;
     this.#logger = logger;
   }
 
+  onRun(listener) {
+    this.#listeners.add(listener);
+  }
+
   async run(trigger) {
     const run = await this.#collector.collect();
     this.#report(run, trigger);
+    this.#listeners.forEach((listener) => listener(run, trigger));
     return run;
   }
 
